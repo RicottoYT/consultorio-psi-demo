@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consultório Psi</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+body{margin:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+/* Layout: barra superior com abas (Painel, Agenda, Pacientes). Painel = indicadores + próximas sessões + gráfico da semana. Agenda = grade semanal seg-sáb. Pacientes = lista + ficha. */
+:root{
+  --bg:#f3f6f6; --surface:#ffffff; --fg:#142428; --muted:#5a6e73; --line:#d9e3e3;
+  --accent:#1b6b68; --accent-ink:#ffffff; --accent-soft:#dcefed;
+  --good:#2b7a4b; --good-soft:#dff1e5; --warn:#8f5200; --warn-soft:#faecd2;
+  --crit:#b0352d; --crit-soft:#f8e0dd; --neutral-soft:#e9efef; --bar:#b9d9d6;
+  --font-display:"Space Grotesk",system-ui,sans-serif; --font-body:"Inter",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e191b; --surface:#152326; --fg:#e4eeed; --muted:#8fa6aa; --line:#25383b;
+    --accent:#52b8b0; --accent-ink:#0a1b1a; --accent-soft:#1a3b3a;
+    --good:#6cc58c; --good-soft:#173324; --warn:#e0a24a; --warn-soft:#3a2d12;
+    --crit:#ef8a82; --crit-soft:#3b1e1c; --neutral-soft:#1e2f32; --bar:#2c5654; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e191b; --surface:#152326; --fg:#e4eeed; --muted:#8fa6aa; --line:#25383b;
+  --accent:#52b8b0; --accent-ink:#0a1b1a; --accent-soft:#1a3b3a;
+  --good:#6cc58c; --good-soft:#173324; --warn:#e0a24a; --warn-soft:#3a2d12;
+  --crit:#ef8a82; --crit-soft:#3b1e1c; --neutral-soft:#1e2f32; --bar:#2c5654; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.2}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.demo{background:var(--warn-soft);color:var(--warn);font-size:12.5px;padding:8px 0}
+.demo .wrap{padding-block:0}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px;padding-block:18px 14px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:18px}
+.brand i{width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center}
+.brand i::after{content:"";width:10px;height:10px;border-radius:50%;background:var(--accent-ink);opacity:.9}
+.tabs{display:flex;gap:4px;overflow-x:auto;min-width:0}
+.tab{border:0;background:transparent;padding:8px 14px;border-radius:8px;color:var(--muted);font-weight:500}
+.tab[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.tab:hover{color:var(--fg)}
+.who{margin-left:auto;color:var(--muted);font-size:13px}
+
+.page-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-block:8px 16px}
+.page-h h1{font-size:24px}
+.sub{color:var(--muted);margin:2px 0 0}
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:8px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--crit)}
+.btn.sm{padding:5px 10px;font-size:13px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi-l{color:var(--muted);font-size:12.5px}
+.kpi-v{font-family:var(--font-display);font-size:30px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi-n{color:var(--muted);font-size:12.5px}
+.kpi.alert .kpi-v{color:var(--crit)}
+
+.dash{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card h2{font-size:16px;margin-bottom:10px}
+.list{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:74px 1fr auto;gap:10px;align-items:center;width:100%;text-align:left;background:transparent;border:0;border-top:1px solid var(--line);padding:10px 4px;min-width:0}
+.row:first-child{border-top:0}
+.row:hover{background:var(--neutral-soft)}
+.row .when{font-size:12.5px;color:var(--muted);line-height:1.3}
+.row .when b{display:block;color:var(--fg);font-weight:600;font-size:14px}
+.row .who2{min-width:0}
+.row .who2 b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .who2 span{font-size:12.5px;color:var(--muted)}
+.empty{color:var(--muted);padding:12px 4px}
+
+.pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.s-agendada{background:var(--accent-soft);color:var(--accent)}
+.s-confirmada{background:var(--good-soft);color:var(--good)}
+.s-realizada{background:var(--neutral-soft);color:var(--muted)}
+.s-faltou{background:var(--crit-soft);color:var(--crit)}
+.s-cancelada{background:transparent;color:var(--muted);text-decoration:line-through;border:1px solid var(--line)}
+
+.bars{display:flex;align-items:flex-end;gap:10px;height:170px;padding-top:8px;border-bottom:1px solid var(--line)}
+.bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;height:100%;min-width:0}
+.bar b{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.bar i{display:block;width:100%;max-width:44px;background:var(--bar);border-radius:5px 5px 0 0;min-height:2px}
+.bar.today i{background:var(--accent)}
+.bar-l{display:flex;gap:10px;margin-top:6px}
+.bar-l span{flex:1;text-align:center;font-size:12px;color:var(--muted)}
+.bar-l span.today{color:var(--accent);font-weight:600}
+
+.wk-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.wk-label{font-family:var(--font-display);font-weight:600;min-width:170px;text-align:center}
+.gridbox{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+.grid{display:grid;grid-template-columns:56px repeat(6,minmax(104px,1fr));min-width:700px}
+.gh{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px;display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.gh b{font-size:17px;font-family:var(--font-display);color:var(--fg)}
+.gh.is-today b{background:var(--accent);color:var(--accent-ink);border-radius:50%;min-width:28px;height:28px;display:grid;place-items:center}
+.gt{padding:6px 8px;text-align:right;font-size:12px;color:var(--muted);border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.cell{border-top:1px solid var(--line);border-left:1px solid var(--line);padding:3px;min-height:50px}
+.slot{width:100%;height:100%;min-height:44px;border:0;background:transparent;color:var(--accent);font-size:18px;border-radius:6px;opacity:0}
+.slot:hover,.slot:focus-visible{opacity:1;background:var(--accent-soft)}
+.chip{width:100%;height:100%;min-height:44px;border:0;border-radius:6px;text-align:left;padding:5px 8px;font-size:12.5px;font-weight:500;display:flex;flex-direction:column;line-height:1.25;overflow:hidden}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip small{font-size:11px;opacity:.85;font-weight:400}
+.chip.s-realizada{opacity:.75}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+
+.pac{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+.search{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);margin-bottom:8px}
+.citem{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;padding:8px;min-width:0}
+.citem:hover{background:var(--neutral-soft)}
+.citem[aria-current="true"]{background:var(--accent-soft)}
+.av{flex:none;width:34px;height:34px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:600;font-size:12.5px}
+.citem .t{min-width:0}
+.citem .t b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.citem .t span{font-size:12.5px;color:var(--muted)}
+.citem.off{opacity:.55}
+.ficha-h{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.ficha-h h2{font-size:20px;margin:0}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 16px;margin-bottom:16px}
+.meta div{min-width:0}
+.meta dt{font-size:12px;color:var(--muted)}
+.meta dd{margin:0;overflow-wrap:anywhere}
+label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:4px}
+.fld{margin-bottom:12px}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+textarea{min-height:92px;resize:vertical}
+.tw{overflow-x:auto;margin-top:6px}
+table{border-collapse:collapse;width:100%;min-width:420px}
+th{text-align:left;font-weight:500;font-size:12px;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line)}
+.sec{font-size:14px;margin:18px 0 6px}
+.priv{font-size:12px;color:var(--muted);margin-top:4px}
+
+.ov{position:fixed;inset:0;background:rgba(8,18,20,.55);display:grid;place-items:center;padding:16px;z-index:50}
+.dlg{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;width:100%;max-width:440px;max-height:calc(100% - 8px);overflow-y:auto}
+.dlg h2{font-size:18px;margin-bottom:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:8px}
+.err{color:var(--crit);font-size:13px;margin:0 0 8px;min-height:0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:99px;font-size:13px;z-index:60}
+.foot-note{color:var(--muted);font-size:12px;margin-top:24px}
+
+@media (max-width:860px){
+  .dash,.pac{grid-template-columns:1fr}
+  .who{display:none}
+}
+@media (max-width:480px){
+  .two{grid-template-columns:1fr}
+  .row{grid-template-columns:64px 1fr}
+  .row .pill{grid-column:2}
+}
+@media (prefers-reduced-motion:no-preference){
+  .bar i{transition:height .3s ease}
+}
+</style>
+</head>
+<body>
+
+<div class="demo"><div class="wrap">Protótipo com dados fictícios. O que você altera aqui vale só para esta visita. Login, backup e LGPD entram na versão final.</div></div>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><i aria-hidden="true"></i>Consultório Psi</div>
+    <nav class="tabs" aria-label="Seções">
+      <button class="tab" data-act="view" data-view="painel">Painel</button>
+      <button class="tab" data-act="view" data-view="agenda">Agenda</button>
+      <button class="tab" data-act="view" data-view="clientes">Pacientes</button>
+    </nav>
+    <div class="who">Dra. Helena Prado · CRP 06/000000 (exemplo)</div>
+  </header>
+  <main id="app"></main>
+  <p class="foot-note">Protótipo de demonstração. Nomes, telefones e valores são inventados.</p>
+</div>
+<div id="modal-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
+<script>
+(function(){
+var $=function(s,r){return (r||document).querySelector(s)};
+var esc=function(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var pad=function(n){return String(n).padStart(2,'0')};
+var iso=function(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+var parse=function(s){var p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])};
+var addDays=function(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x};
+var monday=function(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
+var brl=function(n){return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})};
+var dtOf=function(s){var d=parse(s.date);var t=s.time.split(':').map(Number);d.setHours(t[0],t[1],0,0);return d};
+var DOW=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+var MES=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+var ST={agendada:'Agendada',confirmada:'Confirmada',realizada:'Realizada',faltou:'Faltou',cancelada:'Cancelada'};
+var HOURS=[8,9,10,11,12,13,14,15,16,17];
+var VIEWS=['painel','agenda','clientes'];
+
+var now=new Date();
+var todayISO=iso(now);
+var thisMon=monday(now);
+
+var clients=[
+ {id:1,nome:'Ana Beatriz Lima',tel:'(12) 99111-2030',email:'ana.lima@exemplo.com',tipo:'Individual',desde:'2025-03-12',valor:180,ativo:true,notas:'Foco atual: ansiedade no trabalho. Boa adesão às tarefas entre sessões.'},
+ {id:2,nome:'Carlos Eduardo Souza',tel:'(12) 99222-4411',email:'carlos.souza@exemplo.com',tipo:'Individual',desde:'2025-06-02',valor:180,ativo:true,notas:'Retomou o sono regular. Próximo passo: rotina de pausas.'},
+ {id:3,nome:'Mariana e Rafael Teixeira',tel:'(12) 99333-7788',email:'teixeira.casal@exemplo.com',tipo:'Casal',desde:'2025-08-19',valor:260,ativo:true,notas:'Trabalhando comunicação em conflitos. Exercício semanal combinado.'},
+ {id:4,nome:'Júlia Fernandes',tel:'(12) 99444-1209',email:'julia.f@exemplo.com',tipo:'Individual',desde:'2024-11-05',valor:180,ativo:true,notas:''},
+ {id:5,nome:'Pedro Henrique Alves',tel:'(12) 99555-3321',email:'resp.alves@exemplo.com',tipo:'Infantil',desde:'2026-02-10',valor:160,ativo:true,notas:'Responsável: Sra. Alves. Sessões lúdicas, 9 anos.'},
+ {id:6,nome:'Luciana Prado',tel:'(12) 99666-8890',email:'luciana.p@exemplo.com',tipo:'Individual',desde:'2025-10-01',valor:180,ativo:true,notas:'Luto recente. Sessões semanais por enquanto.'},
+ {id:7,nome:'Thiago Moreira',tel:'(12) 99777-5502',email:'thiago.m@exemplo.com',tipo:'Individual',desde:'2026-01-20',valor:180,ativo:true,notas:''},
+ {id:8,nome:'Renata Duarte',tel:'(12) 99888-6143',email:'renata.d@exemplo.com',tipo:'Individual',desde:'2025-04-28',valor:180,ativo:true,notas:'Avaliar frequência quinzenal no próximo mês.'},
+ {id:9,nome:'Fábio Nogueira',tel:'(12) 99999-0276',email:'fabio.n@exemplo.com',tipo:'Individual',desde:'2026-05-14',valor:180,ativo:true,notas:''},
+ {id:10,nome:'Gabriela Ramos',tel:'(12) 98111-7424',email:'gabi.r@exemplo.com',tipo:'Individual',desde:'2024-07-09',valor:180,ativo:false,notas:'Alta em agosto. Arquivada.'}
+];
+var sessions=[];
+var nextId=1000;
+[[1,0,9],[2,0,14],[3,1,10],[4,1,16],[5,2,9],[6,2,15],[7,3,11],[8,4,14],[9,5,9]].forEach(function(p){
+  var c=clients.find(function(x){return x.id===p[0]});
+  for(var w=-2;w<=2;w++){
+    var d=addDays(thisMon,w*7+p[1]);
+    var dt=new Date(d.getFullYear(),d.getMonth(),d.getDate(),p[2]);
+    var status,pago=false;
+    if(dt<now){status=((p[0]+w)%7===3)?'faltou':'realizada';pago=status==='realizada'&&((p[0]+w)%5!==0)}
+    else if((p[0]*3+w)%11===0){status='cancelada'}
+    else{status=(dt-now<2*864e5)?'confirmada':'agendada'}
+    sessions.push({id:nextId++,clientId:p[0],date:iso(d),time:pad(p[2])+':00',status:status,valor:c.valor,pago:pago});
+  }
+});
+
+var state={view:'painel',weekStart:thisMon,sel:1,q:''};
+var active=function(s){return s.status!=='cancelada'};
+var byDT=function(a,b){return dtOf(a)-dtOf(b)};
+var cname=function(id){var c=clients.find(function(x){return x.id===id});return c?c.nome:'—'};
+var ctipo=function(id){var c=clients.find(function(x){return x.id===id});return c?c.tipo:''};
+var ini=function(n){return n.split(' ').filter(function(w){return w.length>2}).slice(0,2).map(function(w){return w[0]}).join('').toUpperCase()};
+var pill=function(s){return '<span class="pill s-'+s+'">'+ST[s]+'</span>'};
+var dayLabel=function(di){
+  if(di===todayISO)return 'Hoje';
+  if(di===iso(addDays(now,1)))return 'Amanhã';
+  var d=parse(di);return DOW[d.getDay()]+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1);
+};
+var fmtDate=function(di){var d=parse(di);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()};
+
+function toast(msg){
+  var r=$('#toast-root');r.innerHTML='<div class="toast">'+esc(msg)+'</div>';
+  setTimeout(function(){r.innerHTML=''},2200);
+}
+
+/* ---------- Painel ---------- */
+function renderPainel(){
+  var hoje=sessions.filter(function(s){return s.date===todayISO&&active(s)}).sort(byDT);
+  var pend=hoje.filter(function(s){return dtOf(s)>=now&&(s.status==='agendada'||s.status==='confirmada')});
+  var futuras=sessions.filter(function(s){return (s.status==='agendada'||s.status==='confirmada')&&dtOf(s)>=now}).sort(byDT).slice(0,7);
+  var mes=todayISO.slice(0,7);
+  var faltas=sessions.filter(function(s){return s.status==='faltou'&&s.date.slice(0,7)===mes}).length;
+  var receber=sessions.filter(function(s){return s.status==='realizada'&&!s.pago}).reduce(function(a,s){return a+s.valor},0);
+  var nReceber=sessions.filter(function(s){return s.status==='realizada'&&!s.pago}).length;
+  var ativos=clients.filter(function(c){return c.ativo}).length;
+  var counts=[0,1,2,3,4,5].map(function(i){var di=iso(addDays(thisMon,i));return sessions.filter(function(s){return s.date===di&&active(s)}).length});
+  var max=Math.max.apply(null,counts.concat([1]));
+  var h='<div class="page-h"><div><h1>Painel</h1><p class="sub">'+DOW[now.getDay()]+', '+now.getDate()+' de '+MES[now.getMonth()]+' de '+now.getFullYear()+'</p></div>'+
+    '<button class="btn primary" data-act="new-session">Nova sessão</button></div>';
+  h+='<section class="kpis" aria-label="Indicadores">'+
+    '<div class="kpi"><span class="kpi-l">Sessões hoje</span><span class="kpi-v">'+hoje.length+'</span><span class="kpi-n">'+(pend.length?('Próxima às '+pend[0].time):(hoje.length?'Todas concluídas':'Sem atendimentos hoje'))+'</span></div>'+
+    '<div class="kpi"><span class="kpi-l">Pacientes ativos</span><span class="kpi-v">'+ativos+'</span><span class="kpi-n">'+(clients.length-ativos)+' arquivado(s)</span></div>'+
+    '<div class="kpi'+(faltas?' alert':'')+'"><span class="kpi-l">Faltas no mês</span><span class="kpi-v">'+faltas+'</span><span class="kpi-n">Sessões marcadas como falta</span></div>'+
+    '<div class="kpi"><span class="kpi-l">A receber</span><span class="kpi-v">'+brl(receber)+'</span><span class="kpi-n">'+nReceber+' sessão(ões) em aberto</span></div>'+
+    '</section>';
+  h+='<div class="dash"><section class="card"><h2>Próximas sessões</h2><div class="list">';
+  if(!futuras.length)h+='<div class="empty">Nenhuma sessão futura agendada.</div>';
+  futuras.forEach(function(s){
+    h+='<button class="row" data-act="edit-session" data-id="'+s.id+'"><span class="when"><b class="num">'+s.time+'</b>'+dayLabel(s.date)+'</span>'+
+       '<span class="who2"><b>'+esc(cname(s.clientId))+'</b><span>'+ctipo(s.clientId)+'</span></span>'+pill(s.status)+'</button>';
+  });
+  h+='</div></section><section class="card"><h2>Sessões nesta semana</h2><div class="bars">';
+  counts.forEach(function(n,i){
+    var isT=iso(addDays(thisMon,i))===todayISO;
+    h+='<div class="bar'+(isT?' today':'')+'"><b>'+n+'</b><i style="height:'+Math.round(n/max*118)+'px"></i></div>';
+  });
+  h+='</div><div class="bar-l">';
+  counts.forEach(function(n,i){
+    var d=addDays(thisMon,i);h+='<span class="'+(iso(d)===todayISO?'today':'')+'">'+DOW[d.getDay()]+' '+d.getDate()+'</span>';
+  });
+  h+='</div></section></div>';
+  return h;
+}
+
+/* ---------- Agenda ---------- */
+function renderAgenda(){
+  var ws=state.weekStart;
+  var days=[0,1,2,3,4,5].map(function(i){return addDays(ws,i)});
+  var label=days[0].getDate()+' '+MES[days[0].getMonth()]+' – '+days[5].getDate()+' '+MES[days[5].getMonth()]+' '+days[5].getFullYear();
+  var h='<div class="page-h"><div><h1>Agenda</h1><p class="sub">Clique em um horário livre para marcar, ou em uma sessão para editar.</p></div>'+
+    '<div class="wk-ctl"><button class="btn" data-act="prev" aria-label="Semana anterior">←</button><span class="wk-label num">'+label+'</span>'+
+    '<button class="btn" data-act="next" aria-label="Próxima semana">→</button><button class="btn" data-act="today">Hoje</button>'+
+    '<button class="btn primary" data-act="new-session">Nova sessão</button></div></div>';
+  h+='<div class="gridbox"><div class="grid"><div class="gh"></div>';
+  days.forEach(function(d){h+='<div class="gh'+(iso(d)===todayISO?' is-today':'')+'"><span>'+DOW[d.getDay()]+'</span><b>'+d.getDate()+'</b></div>'});
+  HOURS.forEach(function(hr){
+    var t=pad(hr)+':00';
+    h+='<div class="gt">'+t+'</div>';
+    days.forEach(function(d){
+      var di=iso(d);
+      var s=sessions.find(function(x){return x.date===di&&x.time===t&&active(x)});
+      if(s){
+        h+='<div class="cell"><button class="chip s-'+s.status+'" data-act="edit-session" data-id="'+s.id+'"><span>'+esc(cname(s.clientId))+'</span><small>'+ST[s.status]+'</small></button></div>';
+      }else{
+        h+='<div class="cell"><button class="slot" data-act="new-session" data-date="'+di+'" data-time="'+t+'" aria-label="Agendar '+DOW[d.getDay()]+' '+d.getDate()+' às '+t+'">+</button></div>';
+      }
+    });
+  });
+  h+='</div></div><div class="legend">';
+  ['agendada','confirmada','realizada','faltou'].forEach(function(k){h+=pill(k)});
+  h+='</div>';
+  return h;
+}
+
+/* ---------- Pacientes ---------- */
+function clientListHTML(){
+  var q=state.q.trim().toLowerCase();
+  var list=clients.filter(function(c){return !q||c.nome.toLowerCase().indexOf(q)>-1});
+  if(!list.length)return '<div class="empty">Nenhum paciente encontrado.</div>';
+  return list.map(function(c){
+    var nx=sessions.filter(function(s){return s.clientId===c.id&&(s.status==='agendada'||s.status==='confirmada')&&dtOf(s)>=now}).sort(byDT)[0];
+    var sub=c.ativo?(nx?('Próxima: '+dayLabel(nx.date)+' '+nx.time):'Sem sessão marcada'):'Arquivado';
+    return '<button class="citem'+(c.ativo?'':' off')+'" data-act="sel-client" data-id="'+c.id+'"'+(c.id===state.sel?' aria-current="true"':'')+'><span class="av">'+esc(ini(c.nome))+'</span><span class="t"><b>'+esc(c.nome)+'</b><span>'+esc(sub)+'</span></span></button>';
+  }).join('');
+}
+function fichaHTML(){
+  var c=clients.find(function(x){return x.id===state.sel});
+  if(!c)return '<div class="empty">Selecione um paciente na lista.</div>';
+  var hist=sessions.filter(function(s){return s.clientId===c.id}).sort(function(a,b){return byDT(b,a)}).slice(0,12);
+  var h='<div class="ficha-h"><div><h2>'+esc(c.nome)+'</h2><p class="sub">'+esc(c.tipo)+' · '+(c.ativo?'Em acompanhamento':'Arquivado')+'</p></div>'+
+    '<div class="wk-ctl"><button class="btn primary sm" data-act="new-session" data-client="'+c.id+'">Agendar sessão</button>'+
+    '<button class="btn sm" data-act="toggle-ativo" data-id="'+c.id+'">'+(c.ativo?'Arquivar':'Reativar')+'</button></div></div>';
+  h+='<dl class="meta"><div><dt>Telefone</dt><dd class="num">'+esc(c.tel)+'</dd></div><div><dt>E-mail</dt><dd>'+esc(c.email)+'</dd></div>'+
+     '<div><dt>Paciente desde</dt><dd>'+fmtDate(c.desde)+'</dd></div><div><dt>Valor da sessão</dt><dd class="num">'+brl(c.valor)+'</dd></div></dl>';
+  h+='<div class="fld"><label for="notas">Anotações do profissional</label><textarea id="notas" data-client="'+c.id+'">'+esc(c.notas)+'</textarea>'+
+     '<p class="priv">Visíveis só para você. Na versão final, ficam protegidas por login e criptografia.</p></div>';
+  h+='<h3 class="sec">Histórico de sessões</h3><div class="tw"><table><thead><tr><th>Data</th><th>Hora</th><th>Situação</th><th>Valor</th><th>Pagamento</th></tr></thead><tbody>';
+  if(!hist.length)h+='<tr><td colspan="5" class="empty">Nenhuma sessão registrada.</td></tr>';
+  hist.forEach(function(s){
+    var pg=s.status==='realizada'?(s.pago?'<span class="pill s-confirmada">Pago</span>':'<span class="pill s-faltou">Em aberto</span>'):'—';
+    h+='<tr><td class="num">'+fmtDate(s.date)+'</td><td class="num">'+s.time+'</td><td>'+pill(s.status)+'</td><td class="num">'+brl(s.valor)+'</td><td>'+pg+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+function renderClientes(){
+  return '<div class="page-h"><div><h1>Pacientes</h1><p class="sub">Cadastro, anotações e histórico de cada pessoa.</p></div>'+
+    '<button class="btn primary" data-act="new-client">Novo paciente</button></div>'+
+    '<div class="pac"><section class="card"><label for="q">Buscar paciente</label><input class="search" id="q" type="text" placeholder="Digite um nome" value="'+esc(state.q)+'" autocomplete="off"><div id="clist">'+clientListHTML()+'</div></section>'+
+    '<section class="card" id="ficha">'+fichaHTML()+'</section></div>';
+}
+
+/* ---------- Modais ---------- */
+function openModal(title,body,foot){
+  $('#modal-root').innerHTML='<div class="ov"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlg-t"><h2 id="dlg-t">'+title+'</h2>'+body+'<div class="foot">'+foot+'</div></div></div>';
+  var f=$('#modal-root input,#modal-root select');if(f)f.focus();
+}
+function closeModal(){$('#modal-root').innerHTML=''}
+
+function openSession(o){
+  var ed=o.id?sessions.find(function(s){return s.id===o.id}):null;
+  var s=ed||{clientId:o.clientId||'',date:o.date||todayISO,time:o.time||'09:00',status:'agendada',valor:'',pago:false};
+  var opts='<option value="">Selecione…</option>'+clients.filter(function(c){return c.ativo||c.id===s.clientId}).map(function(c){return '<option value="'+c.id+'"'+(c.id===s.clientId?' selected':'')+'>'+esc(c.nome)+'</option>'}).join('');
+  var tms=HOURS.map(function(h){var t=pad(h)+':00';return '<option'+(t===s.time?' selected':'')+'>'+t+'</option>'}).join('');
+  var sts=Object.keys(ST).map(function(k){return '<option value="'+k+'"'+(k===s.status?' selected':'')+'>'+ST[k]+'</option>'}).join('');
+  var body='<div class="fld"><label for="s-client">Paciente</label><select id="s-client">'+opts+'</select></div>'+
+    '<div class="two"><div class="fld"><label for="s-date">Data</label><input id="s-date" type="date" value="'+s.date+'"></div>'+
+    '<div class="fld"><label for="s-time">Horário</label><select id="s-time">'+tms+'</select></div></div>'+
+    '<div class="two"><div class="fld"><label for="s-valor">Valor (R$)</label><input id="s-valor" type="number" min="0" step="10" value="'+s.valor+'"></div>'+
+    '<div class="fld"><label for="s-status">Situação</label><select id="s-status">'+sts+'</select></div></div>'+
+    '<div class="fld"><label><input id="s-pago" type="checkbox"'+(s.pago?' checked':'')+'> Pagamento recebido</label></div>'+
+    '<p class="err" id="s-err" role="alert"></p>';
+  var foot=(ed?'<button class="btn danger" data-act="cancel-session" data-id="'+ed.id+'">Cancelar sessão</button>':'')+
+    '<button class="btn" data-act="close">Fechar</button><button class="btn primary" data-act="save-session" data-id="'+(ed?ed.id:'')+'">Salvar</button>';
+  openModal(ed?'Editar sessão':'Nova sessão',body,foot);
+}
+function saveSession(id){
+  var cid=+$('#s-client').value,date=$('#s-date').value,time=$('#s-time').value;
+  var valor=parseFloat($('#s-valor').value)||0,status=$('#s-status').value,pago=$('#s-pago').checked;
+  var err=function(m){$('#s-err').textContent=m};
+  if(!cid)return err('Escolha o paciente.');
+  if(!date)return err('Informe a data.');
+  if(parse(date).getDay()===0)return err('Os atendimentos são de segunda a sábado.');
+  var clash=sessions.find(function(x){return x.id!==id&&x.date===date&&x.time===time&&active(x)});
+  if(clash&&status!=='cancelada')return err('Já existe uma sessão de '+cname(clash.clientId)+' neste horário.');
+  if(id){var s=sessions.find(function(x){return x.id===id});s.clientId=cid;s.date=date;s.time=time;s.valor=valor;s.status=status;s.pago=pago}
+  else{sessions.push({id:nextId++,clientId:cid,date:date,time:time,status:status,valor:valor,pago:pago})}
+  state.weekStart=monday(parse(date));
+  closeModal();render();toast('Sessão salva');
+}
+function openClient(){
+  var body='<div class="fld"><label for="c-nome">Nome completo</label><input id="c-nome" type="text" autocomplete="off"></div>'+
+    '<div class="two"><div class="fld"><label for="c-tel">Telefone</label><input id="c-tel" type="text" placeholder="(12) 90000-0000"></div>'+
+    '<div class="fld"><label for="c-tipo">Atendimento</label><select id="c-tipo"><option>Individual</option><option>Casal</option><option>Infantil</option></select></div></div>'+
+    '<div class="two"><div class="fld"><label for="c-email">E-mail</label><input id="c-email" type="text"></div>'+
+    '<div class="fld"><label for="c-valor">Valor da sessão (R$)</label><input id="c-valor" type="number" min="0" step="10" value="180"></div></div>'+
+    '<p class="err" id="c-err" role="alert"></p>';
+  openModal('Novo paciente',body,'<button class="btn" data-act="close">Fechar</button><button class="btn primary" data-act="save-client">Cadastrar</button>');
+}
+function saveClient(){
+  var nome=$('#c-nome').value.trim();
+  if(nome.length<3){$('#c-err').textContent='Informe o nome do paciente.';return}
+  var c={id:Math.max.apply(null,clients.map(function(x){return x.id}))+1,nome:nome,tel:$('#c-tel').value.trim()||'—',email:$('#c-email').value.trim()||'—',tipo:$('#c-tipo').value,desde:todayISO,valor:parseFloat($('#c-valor').value)||0,ativo:true,notas:''};
+  clients.push(c);state.sel=c.id;state.q='';
+  closeModal();render();toast('Paciente cadastrado');
+}
+
+/* ---------- Render e eventos ---------- */
+function render(){
+  document.querySelectorAll('.tab').forEach(function(b){
+    if(b.dataset.view===state.view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+  });
+  $('#app').innerHTML=state.view==='agenda'?renderAgenda():state.view==='clientes'?renderClientes():renderPainel();
+}
+function go(v){
+  if(VIEWS.indexOf(v)<0)v='painel';
+  state.view=v;
+  try{if(location.hash!=='#'+v)location.hash=v}catch(e){}
+  render();
+}
+
+document.addEventListener('click',function(e){
+  if(e.target.classList&&e.target.classList.contains('ov')){closeModal();return}
+  var t=e.target.closest('[data-act]');if(!t)return;
+  var a=t.dataset.act,id=t.dataset.id?+t.dataset.id:null;
+  if(a==='view')go(t.dataset.view);
+  else if(a==='new-session')openSession({date:t.dataset.date,time:t.dataset.time,clientId:t.dataset.client?+t.dataset.client:null});
+  else if(a==='edit-session')openSession({id:id});
+  else if(a==='save-session')saveSession(id);
+  else if(a==='cancel-session'){var s=sessions.find(function(x){return x.id===id});s.status='cancelada';closeModal();render();toast('Sessão cancelada')}
+  else if(a==='close')closeModal();
+  else if(a==='prev'){state.weekStart=addDays(state.weekStart,-7);render()}
+  else if(a==='next'){state.weekStart=addDays(state.weekStart,7);render()}
+  else if(a==='today'){state.weekStart=thisMon;render()}
+  else if(a==='new-client')openClient();
+  else if(a==='save-client')saveClient();
+  else if(a==='sel-client'){state.sel=id;$('#clist').innerHTML=clientListHTML();$('#ficha').innerHTML=fichaHTML()}
+  else if(a==='toggle-ativo'){var c=clients.find(function(x){return x.id===id});c.ativo=!c.ativo;$('#clist').innerHTML=clientListHTML();$('#ficha').innerHTML=fichaHTML();toast(c.ativo?'Paciente reativado':'Paciente arquivado')}
+});
+document.addEventListener('input',function(e){
+  if(e.target.id==='q'){state.q=e.target.value;$('#clist').innerHTML=clientListHTML()}
+  else if(e.target.id==='notas'){var c=clients.find(function(x){return x.id===+e.target.dataset.client});if(c)c.notas=e.target.value}
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='s-client'){
+    var c=clients.find(function(x){return x.id===+e.target.value});var v=$('#s-valor');
+    if(c&&v&&!v.value)v.value=c.valor;
+  }
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
+window.addEventListener('hashchange',function(){var v=location.hash.slice(1);if(VIEWS.indexOf(v)>-1&&v!==state.view){state.view=v;render()}});
+
+var h0='';try{h0=location.hash.slice(1)}catch(e){}
+if(VIEWS.indexOf(h0)>-1)state.view=h0;
+render();
+})();
+</script>
+
+</body>
+</html>
